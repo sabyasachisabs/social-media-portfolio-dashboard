@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import os
 from io import StringIO
 from typing import Iterable
 
@@ -22,6 +23,8 @@ REQUIRED_COLUMNS = [
     "comments",
     "impressions",
 ]
+
+SUPABASE_DEFAULT_TABLE = "social_posts"
 
 
 def create_mock_data() -> pd.DataFrame:
@@ -211,8 +214,79 @@ def _validate_columns(df: pd.DataFrame, required_columns: Iterable[str]) -> tupl
     return len(missing) == 0, missing
 
 
+def get_supabase_client():
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_KEY")
+    if not supabase_url or not supabase_key:
+        return None
+
+    from supabase import create_client
+
+    return create_client(supabase_url, supabase_key)
+
+
+def load_data_from_supabase() -> pd.DataFrame | None:
+    client = get_supabase_client()
+    if client is None:
+        return None
+
+    table_name = os.environ.get("SUPABASE_TABLE", SUPABASE_DEFAULT_TABLE)
+    response = client.table(table_name).select("*").execute()
+    if response.error:
+        st.error(f"Supabase query failed: {response.error.message}")
+        return None
+
+    data = response.data or []
+    if not data:
+        return pd.DataFrame(columns=REQUIRED_COLUMNS)
+
+    return _prepare_dataframe(pd.DataFrame(data))
+
+
+def import_data_to_supabase(df: pd.DataFrame) -> tuple[bool, str]:
+    client = get_supabase_client()
+    if client is None:
+        return False, "Supabase credentials are not set."
+
+    table_name = os.environ.get("SUPABASE_TABLE", SUPABASE_DEFAULT_TABLE)
+    upload_df = df.copy()
+    upload_df["post_date"] = upload_df["post_date"].dt.strftime("%Y-%m-%d")
+    rows = upload_df[REQUIRED_COLUMNS].to_dict(orient="records")
+
+    result = client.table(table_name).insert(rows).execute()
+    if result.error:
+        return False, str(result.error)
+
+    return True, f"Imported {len(rows)} rows into Supabase table '{table_name}'."
+
+
 def load_data() -> pd.DataFrame:
-    """Load uploaded CSV if present, otherwise fallback to mock data."""
+    """Load data from Supabase, uploaded CSV, or mock data."""
+    st.sidebar.header("Data Source")
+
+    supabase_available = bool(os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_KEY"))
+    data_source_options = ["Upload CSV", "Built-in mock data"]
+    if supabase_available:
+        data_source_options.insert(0, "Supabase")
+
+    data_source = st.sidebar.radio(
+        "Select data source",
+        options=data_source_options,
+        index=0 if supabase_available else 1,
+    )
+
+    if data_source == "Supabase":
+        supabase_df = load_data_from_supabase()
+        if supabase_df is not None:
+            return supabase_df
+
+        st.warning("Unable to load data from Supabase. Falling back to built-in mock data.")
+        return create_mock_data()
+
+    if data_source == "Built-in mock data":
+        st.info("Using built-in mock data")
+        return create_mock_data()
+
     uploaded_file = st.sidebar.file_uploader("Upload CSV (optional)", type=["csv"])
     if uploaded_file is None:
         st.info("Using built-in mock data")
@@ -226,7 +300,17 @@ def load_data() -> pd.DataFrame:
         st.warning("Falling back to built-in mock data.")
         return create_mock_data()
 
-    is_valid, missing_cols = _validate_columns(raw_df, REQUIRED_COLUMNS)
+    prepared_df = _prepare_dataframe(raw_df)
+
+    if supabase_available:
+        if st.sidebar.button("Import uploaded CSV into Supabase"):
+            success, message = import_data_to_supabase(prepared_df)
+            if success:
+                st.success(message)
+            else:
+                st.error(message)
+
+    is_valid, missing_cols = _validate_columns(prepared_df, REQUIRED_COLUMNS)
     if not is_valid:
         st.error(
             "Uploaded CSV is missing required columns: "
@@ -235,7 +319,7 @@ def load_data() -> pd.DataFrame:
         )
         return create_mock_data()
 
-    return _prepare_dataframe(raw_df)
+    return prepared_df
 
 
 def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
