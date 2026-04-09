@@ -11,6 +11,10 @@ from typing import Iterable
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 REQUIRED_COLUMNS = [
@@ -231,16 +235,16 @@ def load_data_from_supabase() -> pd.DataFrame | None:
         return None
 
     table_name = os.environ.get("SUPABASE_TABLE", SUPABASE_DEFAULT_TABLE)
-    response = client.table(table_name).select("*").execute()
-    if response.error:
-        st.error(f"Supabase query failed: {response.error.message}")
+    try:
+        response = client.table(table_name).select("*").execute()
+        data = response.data or []
+        if not data:
+            return pd.DataFrame(columns=REQUIRED_COLUMNS)
+
+        return _prepare_dataframe(pd.DataFrame(data))
+    except Exception as e:
+        st.error(f"Supabase query failed: {str(e)}")
         return None
-
-    data = response.data or []
-    if not data:
-        return pd.DataFrame(columns=REQUIRED_COLUMNS)
-
-    return _prepare_dataframe(pd.DataFrame(data))
 
 
 def import_data_to_supabase(df: pd.DataFrame) -> tuple[bool, str]:
@@ -253,11 +257,11 @@ def import_data_to_supabase(df: pd.DataFrame) -> tuple[bool, str]:
     upload_df["post_date"] = upload_df["post_date"].dt.strftime("%Y-%m-%d")
     rows = upload_df[REQUIRED_COLUMNS].to_dict(orient="records")
 
-    result = client.table(table_name).insert(rows).execute()
-    if result.error:
-        return False, str(result.error)
-
-    return True, f"Imported {len(rows)} rows into Supabase table '{table_name}'."
+    try:
+        result = client.table(table_name).insert(rows).execute()
+        return True, f"Imported {len(rows)} rows into Supabase table '{table_name}'."
+    except Exception as e:
+        return False, f"Failed to import data: {str(e)}"
 
 
 def load_data() -> pd.DataFrame:

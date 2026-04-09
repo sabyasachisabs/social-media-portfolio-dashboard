@@ -1,0 +1,17 @@
+project_id,project_name,platform,post_url,post_date,likes,comments,impressions
+P001,LLM Prompt Coach,LinkedIn,https://linkedin.com/posts/mock-001,2026-01-05,82,16,4200
+P001,LLM Prompt Coach,Twitter/X,https://twitter.com/mock/status/001,2026-01-10,56,11,3600
+P002,AI Resume Critic,LinkedIn,https://linkedin.com/posts/mock-002,2026-01-08,140,31,8100
+P002,AI Resume Critic,Twitter/X,https://twitter.com/mock/status/002,2026-01-14,96,20,6400
+P003,Vision QA Bot,LinkedIn,https://linkedin.com/posts/mock-003,2026-01-12,73,14,5000
+P003,Vision QA Bot,Twitter/X,https://twitter.com/mock/status/003,2026-01-20,61,9,3900
+P004,Meeting Notes Copilot,LinkedIn,https://linkedin.com/posts/mock-004,2026-01-16,204,46,12200
+P004,Meeting Notes Copilot,Twitter/X,https://twitter.com/mock/status/004,2026-01-23,132,27,8800
+P005,RAG Benchmark Lab,LinkedIn,https://linkedin.com/posts/mock-005,2026-01-19,111,22,7300
+P005,RAG Benchmark Lab,Twitter/X,https://twitter.com/mock/status/005,2026-01-28,87,18,6100
+P006,Agent Workflow Studio,LinkedIn,https://linkedin.com/posts/mock-006,2026-01-22,175,39,10900
+P006,Agent Workflow Studio,Twitter/X,https://twitter.com/mock/status/006,2026-01-31,118,25,7900
+P007,AI Interview Simulator,LinkedIn,https://linkedin.com/posts/mock-007,2026-02-02,154,33,9400
+P007,AI Interview Simulator,Twitter/X,https://twitter.com/mock/status/007,2026-02-07,101,19,6800
+P008,MLOps Health Monitor,LinkedIn,https://linkedin.com/posts/mock-008,2026-02-05,66,12,4700
+P008,MLOps Health Monitor,Twitter/X,https://twitter.com/mock/status/008,2026-02-11,49,8,3300
